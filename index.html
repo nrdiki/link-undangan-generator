@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Generator Link Undangan — HTML + Vanilla JS</title>
+  <style>
+    :root{--bg:#f8fafc;--card:#fff;--muted:#6b7280;--accent:#0ea5a4}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); color:#0f172a; margin:0; padding:28px}
+    .container{max-width:900px;margin:0 auto}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+    h1{margin:0 0 12px;font-size:20px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=text], input[type=number], textarea{width:100%;padding:10px;border:1px solid #e6edf3;border-radius:8px;box-sizing:border-box}
+    textarea{min-height:120px}
+    .row{display:flex;gap:12px}
+    .col{flex:1}
+    .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    button{background:var(--accent);color:white;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(14,165,164,0.15)}
+    .hint{font-size:13px;color:var(--muted);margin-top:10px}
+    .result{margin-top:16px}
+    .item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;border:1px solid #eef2f6;margin-bottom:8px}
+    .item .meta{flex:1}
+    .link{font-size:13px;word-break:break-all;color:#064e4e}
+    .small{font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:8px;align-items:center}
+    @media (max-width:640px){.row{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Generator Link Undangan</h1>
+      <div class="row">
+        <div class="col">
+          <label>Base URL</label>
+          <input id="baseUrl" type="text" placeholder="https://demo-citra.vercel.app/" value="https://demo-citra.vercel.app/" />
+        </div>
+        <div style="width:160px">
+          <label>Parameter query</label>
+          <input id="paramName" type="text" value="guest" />
+        </div>
+        <div style="width:120px">
+          <label>Preview</label>
+          <input id="previewCount" type="number" min="1" value="10" />
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Daftar nama (pisahkan dengan newline, koma, atau titik koma)</label>
+        <textarea id="rawNames">Teman SMP</textarea>
+      </div>
+
+      <div class="actions">
+        <button id="generateBtn">Generate</button>
+        <button id="copyAllBtn" class="ghost">Copy Semua</button>
+        <button id="downloadCsvBtn" class="ghost">Download CSV</button>
+        <button id="clearBtn" class="ghost">Clear</button>
+      </div>
+
+      <div class="hint">Tip: Nama akan otomatis di-encode supaya aman di URL. Jika base URL sudah punya query string, parameter baru akan ditambahkan dengan &.</div>
+
+      <div class="result" id="resultArea">
+        <div class="small">Belum ada link. Klik "Generate".</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Helper functions
+    function $(id){return document.getElementById(id)}
+
+    function parseNames(input){
+      return input
+        .split(/\r?\n|,|;/)
+        .map(s => s.trim())
+        .filter(Boolean)
+    }
+
+    function ensureEndsWithSlash(url){
+      try{
+        // If it's a full URL with path, keep as is; don't force slash because user may want base with path
+        return url
+      }catch(e){
+        return url
+      }
+    }
+
+    function buildLink(base, param, name){
+      const encoded = encodeURIComponent(name)
+      const hasQuery = base.includes('?')
+      const sep = hasQuery ? '&' : '?'
+      return base + sep + param + '=' + encoded
+    }
+
+    function renderLinks(names, links, previewCount){
+      const area = $('resultArea')
+      area.innerHTML = ''
+      if(!links.length){
+        area.innerHTML = '<div class="small">Belum ada link. Klik "Generate".</div>'
+        return
+      }
+
+      const list = document.createElement('div')
+
+      const toShow = links.slice(0, previewCount)
+      toShow.forEach((link, i) => {
+        const el = document.createElement('div')
+        el.className = 'item'
+
+        const meta = document.createElement('div')
+        meta.className = 'meta'
+        const nameDiv = document.createElement('div')
+        nameDiv.textContent = names[i] || '\u2014'
+        const linkA = document.createElement('a')
+        linkA.href = link
+        linkA.textContent = link
+        linkA.className = 'link'
+        linkA.target = '_blank'
+        meta.appendChild(nameDiv)
+        meta.appendChild(linkA)
+
+        const controls = document.createElement('div')
+        controls.className = 'controls'
+        const copyBtn = document.createElement('button')
+        copyBtn.textContent = 'Copy'
+        copyBtn.className = 'ghost'
+        copyBtn.onclick = () => copyToClipboard(link)
+
+        const openA = document.createElement('a')
+        openA.textContent = 'Open'
+        openA.href = link
+        openA.target = '_blank'
+        openA.style.padding = '8px 10px'
+        openA.style.borderRadius = '8px'
+        openA.style.border = '1px solid rgba(2,6,23,0.06)'
+
+        controls.appendChild(copyBtn)
+        controls.appendChild(openA)
+
+        el.appendChild(meta)
+        el.appendChild(controls)
+        list.appendChild(el)
+      })
+
+      area.appendChild(list)
+
+      if(links.length > previewCount){
+        const note = document.createElement('div')
+        note.className = 'small'
+        note.style.marginTop = '8px'
+        note.textContent = `Menampilkan ${previewCount} dari ${links.length}. Gunakan "Copy Semua" atau "Download CSV" untuk mendapatkan semuanya.`
+        area.appendChild(note)
+      }
+    }
+
+    function copyToClipboard(text){
+      if(!text) return
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(()=>{
+          alert('Tersalin ke clipboard')
+        }).catch(()=>{
+          fallbackCopy(text)
+        })
+      }else{
+        fallbackCopy(text)
+      }
+    }
+
+    function fallbackCopy(text){
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      ta.remove()
+      alert('Tersalin (fallback)')
+    }
+
+    function downloadCSV(names, links){
+      if(!links.length) return
+      const rows = [['name','link'], ...names.map((n,i)=>[n, links[i]])]
+      const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'links-undangan.csv'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    }
+
+    // Wire up
+    let currentNames = []
+    let currentLinks = []
+
+    $('generateBtn').addEventListener('click', ()=>{
+      const base = $('baseUrl').value.trim() || ''
+      const param = $('paramName').value.trim() || 'guest'
+      const preview = Math.max(1, parseInt($('previewCount').value || '10'))
+      const raw = $('rawNames').value || ''
+      const names = parseNames(raw)
+      currentNames = names
+      currentLinks = names.map(n => buildLink(base, param, n))
+      renderLinks(currentNames, currentLinks, preview)
+    })
+
+    $('copyAllBtn').addEventListener('click', ()=>{
+      if(!currentLinks.length){ alert('Belum ada link. Klik Generate dulu.'); return }
+      const text = currentLinks.join('\n')
+      copyToClipboard(text)
+    })
+
+    $('downloadCsvBtn').addEventListener('click', ()=>{
+      if(!currentLinks.length){ alert('Belum ada link. Klik Generate dulu.'); return }
+      downloadCSV(currentNames, currentLinks)
+    })
+
+    $('clearBtn').addEventListener('click', ()=>{
+      $('rawNames').value = ''
+      $('resultArea').innerHTML = '<div class="small">Belum ada link. Klik "Generate".</div>'
+      currentLinks = []
+      currentNames = []
+    })
+
+    // allow pressing Ctrl+Enter in textarea to generate
+    $('rawNames').addEventListener('keydown', (e)=>{
+      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+        e.preventDefault()
+        $('generateBtn').click()
+      }
+    })
+  </script>
+</body>
+</html>

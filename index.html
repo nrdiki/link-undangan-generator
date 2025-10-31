@@ -202,7 +202,7 @@ Wassalamu'alaikum Wr. Wb.</textarea>
       alert('Tersalin (fallback)')
     }
 
-    function downloadCSV(names, links, messages){
+function downloadCSV(names, links, messages){
   if(!links.length) return
   const rows = [['name','link','message'], ...names.map((n,i)=>[n, links[i], messages[i]])]
   const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n')
@@ -217,33 +217,16 @@ Wassalamu'alaikum Wr. Wb.</textarea>
   URL.revokeObjectURL(url)
 }
 
-    // Wire up
-    let currentNames = []
-    let currentLinks = []
-    let currentMessages = []
+$('copyAllBtn').addEventListener('click', ()=>{
+  if(!currentLinks.length){ alert('Belum ada link. Klik Generate dulu.'); return }
+  copyToClipboard(currentLinks.join('\n'))
+})
 
-    $('generateBtn').addEventListener('click', ()=>{
-      const base = $('baseUrl').value.trim() || ''
-      const param = $('paramName').value.trim() || 'guest'
-      const preview = Math.max(1, parseInt($('previewCount').value || '10'))
-      const raw = $('rawNames').value || ''
-      const template = $('template').value || ''
-      const names = parseNames(raw)
-      currentNames = names
-      currentLinks = names.map(n => buildLink(base, param, n))
-      currentMessages = names.map((n,i)=> applyTemplate(template, n, currentLinks[i]))
-      renderResults(currentNames, currentLinks, currentMessages, preview)
-    })
+$('copyAllMsgBtn').addEventListener('click', ()=>{
+  if(!currentMessages.length){ alert('Belum ada pesan. Klik Generate dulu.'); return }
+  copyToClipboard(currentMessages.join('\n\n---\n\n'))
+})
 
-    $('copyAllBtn').addEventListener('click', ()=>{
-      if(!currentLinks.length){ alert('Belum ada link. Klik Generate dulu.'); return }
-      copyToClipboard(currentLinks.join(''))
-    })
-
-    $('copyAllMsgBtn').addEventListener('click', ()=>{
-      if(!currentMessages.length){ alert('Belum ada pesan. Klik Generate dulu.'); return }
-      copyToClipboard(currentMessages.join('---'))
-    })
 
     $('downloadCsvBtn').addEventListener('click', ()=>{
       if(!currentLinks.length){ alert('Belum ada link. Klik Generate dulu.'); return }
@@ -267,6 +250,7 @@ Wassalamu'alaikum Wr. Wb.</textarea>
   </script>
 </body>
 </html>
+
 
 
 

@@ -25,17 +25,19 @@
     .link{font-size:13px;word-break:break-all;color:#064e4e}
     .small{font-size:12px;color:var(--muted)}
     .controls{display:flex;gap:8px;align-items:center}
+    .template-box{margin-top:12px}
+    .note{font-size:13px;color:#334155}
     @media (max-width:640px){.row{flex-direction:column}}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="card">
-      <h1>Generator Link Undangan</h1>
+      <h1>Generator Link Undangan — dengan Pesan Template</h1>
       <div class="row">
         <div class="col">
           <label>Base URL</label>
-          <input id="baseUrl" type="text" placeholder="https://citrayoga.inivitas.id/" value="https://citrayoga.inivitas.id/" />
+          <input id="baseUrl" type="text" placeholder="https://demo-citra.vercel.app/" value="https://demo-citra.vercel.app/" />
         </div>
         <div style="width:160px">
           <label>Parameter query</label>
@@ -52,14 +54,37 @@
         <textarea id="rawNames">Teman SMP</textarea>
       </div>
 
+      <div class="template-box">
+        <label>Template pesan (gunakan placeholder <code>[Nama Tamu]</code> dan <code>[link undangan]</code>)</label>
+        <textarea id="template">Assalamualaikum warahmatullahi wabarakatuh.
+
+Yth. [Nama Tamu]
+
+Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i, teman sekaligus sahabat, untuk menghadiri acara pernikahan kami :
+
+Citra Siti Nur Aulia,A.Md & Muhammad Yoga Nugraha
+
+Berikut link undangan kami, untuk info selengkapnya dari acara silahkan kunjungi :
+[link undangan]
+
+
+Terukir kesan yang dalam dihati kami apabila Bapak/Ibu/Saudara/i berkenan hadir untuk mengiringi, dan memberikan doa restu kepada kami dalam menapaki lembaran baru perjalanan hidup.
+
+Mohon maaf perihal undangan kami bagikan melalui pesan singkat ini, Terima kasih banyak atas perhatiannya.
+
+Wassalamu'alaikum Wr. Wb.</textarea>
+        <div class="note">Catatan: saat generate, placeholder <code>[Nama Tamu]</code> akan diganti dengan nama yang kamu masukkan, dan <code>[link undangan]</code> akan diganti dengan link yang di-generate.</div>
+      </div>
+
       <div class="actions">
         <button id="generateBtn">Generate</button>
-        <button id="copyAllBtn" class="ghost">Copy Semua</button>
+        <button id="copyAllBtn" class="ghost">Copy Semua Link</button>
+        <button id="copyAllMsgBtn" class="ghost">Copy Semua Pesan</button>
         <button id="downloadCsvBtn" class="ghost">Download CSV</button>
         <button id="clearBtn" class="ghost">Clear</button>
       </div>
 
-      <div class="hint">Tip: Nama akan otomatis di-encode supaya aman di URL. Jika base URL sudah punya query string, parameter baru akan ditambahkan dengan &.</div>
+      <div class="hint">Tip: Nama akan otomatis di-encode supaya aman di URL. Jika base URL sudah punya query string, parameter baru akan ditambahkan dengan &. Gunakan Ctrl/Cmd+Enter di textarea nama untuk generate.</div>
 
       <div class="result" id="resultArea">
         <div class="small">Belum ada link. Klik "Generate".</div>
@@ -68,23 +93,15 @@
   </div>
 
   <script>
-    // Helper functions
     function $(id){return document.getElementById(id)}
 
     function parseNames(input){
       return input
-        .split(/\r?\n|,|;/)
+        .split(/
+?
+|,|;/)
         .map(s => s.trim())
         .filter(Boolean)
-    }
-
-    function ensureEndsWithSlash(url){
-      try{
-        // If it's a full URL with path, keep as is; don't force slash because user may want base with path
-        return url
-      }catch(e){
-        return url
-      }
     }
 
     function buildLink(base, param, name){
@@ -94,7 +111,11 @@
       return base + sep + param + '=' + encoded
     }
 
-    function renderLinks(names, links, previewCount){
+    function applyTemplate(template, name, link){
+      return template.replace(/\[Nama Tamu\]/g, name).replace(/\[link undangan\]/g, link)
+    }
+
+    function renderResults(names, links, messages, previewCount){
       const area = $('resultArea')
       area.innerHTML = ''
       if(!links.length){
@@ -103,7 +124,6 @@
       }
 
       const list = document.createElement('div')
-
       const toShow = links.slice(0, previewCount)
       toShow.forEach((link, i) => {
         const el = document.createElement('div')
@@ -112,21 +132,32 @@
         const meta = document.createElement('div')
         meta.className = 'meta'
         const nameDiv = document.createElement('div')
-        nameDiv.textContent = names[i] || '\u2014'
+        nameDiv.textContent = names[i] || '—'
         const linkA = document.createElement('a')
         linkA.href = link
         linkA.textContent = link
         linkA.className = 'link'
         linkA.target = '_blank'
+        const msgPreview = document.createElement('div')
+        msgPreview.className = 'small'
+        msgPreview.style.marginTop = '6px'
+        msgPreview.textContent = messages[i].slice(0,200) + (messages[i].length>200? '...':'')
+
         meta.appendChild(nameDiv)
         meta.appendChild(linkA)
+        meta.appendChild(msgPreview)
 
         const controls = document.createElement('div')
         controls.className = 'controls'
-        const copyBtn = document.createElement('button')
-        copyBtn.textContent = 'Copy'
-        copyBtn.className = 'ghost'
-        copyBtn.onclick = () => copyToClipboard(link)
+        const copyLinkBtn = document.createElement('button')
+        copyLinkBtn.textContent = 'Copy Link'
+        copyLinkBtn.className = 'ghost'
+        copyLinkBtn.onclick = () => copyToClipboard(link)
+
+        const copyMsgBtn = document.createElement('button')
+        copyMsgBtn.textContent = 'Copy Pesan'
+        copyMsgBtn.className = 'ghost'
+        copyMsgBtn.onclick = () => copyToClipboard(messages[i])
 
         const openA = document.createElement('a')
         openA.textContent = 'Open'
@@ -136,7 +167,8 @@
         openA.style.borderRadius = '8px'
         openA.style.border = '1px solid rgba(2,6,23,0.06)'
 
-        controls.appendChild(copyBtn)
+        controls.appendChild(copyLinkBtn)
+        controls.appendChild(copyMsgBtn)
         controls.appendChild(openA)
 
         el.appendChild(meta)
@@ -150,7 +182,7 @@
         const note = document.createElement('div')
         note.className = 'small'
         note.style.marginTop = '8px'
-        note.textContent = `Menampilkan ${previewCount} dari ${links.length}. Gunakan "Copy Semua" atau "Download CSV" untuk mendapatkan semuanya.`
+        note.textContent = `Menampilkan ${previewCount} dari ${links.length}. Gunakan tombol 'Copy Semua Pesan' atau 'Download CSV' untuk mendapatkan semuanya.`
         area.appendChild(note)
       }
     }
@@ -158,14 +190,8 @@
     function copyToClipboard(text){
       if(!text) return
       if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(text).then(()=>{
-          alert('Tersalin ke clipboard')
-        }).catch(()=>{
-          fallbackCopy(text)
-        })
-      }else{
-        fallbackCopy(text)
-      }
+        navigator.clipboard.writeText(text).then(()=>{ alert('Tersalin ke clipboard') }).catch(()=> fallbackCopy(text))
+      }else fallbackCopy(text)
     }
 
     function fallbackCopy(text){
@@ -178,10 +204,11 @@
       alert('Tersalin (fallback)')
     }
 
-    function downloadCSV(names, links){
+    function downloadCSV(names, links, messages){
       if(!links.length) return
-      const rows = [['name','link'], ...names.map((n,i)=>[n, links[i]])]
-      const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')
+      const rows = [['name','link','message'], ...names.map((n,i)=>[n, links[i], messages[i]])]
+      const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('
+')
       const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -196,27 +223,39 @@
     // Wire up
     let currentNames = []
     let currentLinks = []
+    let currentMessages = []
 
     $('generateBtn').addEventListener('click', ()=>{
       const base = $('baseUrl').value.trim() || ''
       const param = $('paramName').value.trim() || 'guest'
       const preview = Math.max(1, parseInt($('previewCount').value || '10'))
       const raw = $('rawNames').value || ''
+      const template = $('template').value || ''
       const names = parseNames(raw)
       currentNames = names
       currentLinks = names.map(n => buildLink(base, param, n))
-      renderLinks(currentNames, currentLinks, preview)
+      currentMessages = names.map((n,i)=> applyTemplate(template, n, currentLinks[i]))
+      renderResults(currentNames, currentLinks, currentMessages, preview)
     })
 
     $('copyAllBtn').addEventListener('click', ()=>{
       if(!currentLinks.length){ alert('Belum ada link. Klik Generate dulu.'); return }
-      const text = currentLinks.join('\n')
-      copyToClipboard(text)
+      copyToClipboard(currentLinks.join('
+'))
+    })
+
+    $('copyAllMsgBtn').addEventListener('click', ()=>{
+      if(!currentMessages.length){ alert('Belum ada pesan. Klik Generate dulu.'); return }
+      copyToClipboard(currentMessages.join('
+
+---
+
+'))
     })
 
     $('downloadCsvBtn').addEventListener('click', ()=>{
       if(!currentLinks.length){ alert('Belum ada link. Klik Generate dulu.'); return }
-      downloadCSV(currentNames, currentLinks)
+      downloadCSV(currentNames, currentLinks, currentMessages)
     })
 
     $('clearBtn').addEventListener('click', ()=>{
@@ -224,9 +263,9 @@
       $('resultArea').innerHTML = '<div class="small">Belum ada link. Klik "Generate".</div>'
       currentLinks = []
       currentNames = []
+      currentMessages = []
     })
 
-    // allow pressing Ctrl+Enter in textarea to generate
     $('rawNames').addEventListener('keydown', (e)=>{
       if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
         e.preventDefault()
@@ -236,5 +275,3 @@
   </script>
 </body>
 </html>
-
-

@@ -203,19 +203,19 @@ Wassalamu'alaikum Wr. Wb.</textarea>
     }
 
     function downloadCSV(names, links, messages){
-      if(!links.length) return
-      const rows = [['name','link','message'], ...names.map((n,i)=>[n, links[i], messages[i]])]
-      const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('')
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'links-undangan.csv'
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-    }
+  if(!links.length) return
+  const rows = [['name','link','message'], ...names.map((n,i)=>[n, links[i], messages[i]])]
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n')
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'links-undangan.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
 
     // Wire up
     let currentNames = []
@@ -272,5 +272,6 @@ Wassalamu'alaikum Wr. Wb.</textarea>
   </script>
 </body>
 </html>
+
 
 

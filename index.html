@@ -243,11 +243,7 @@ Wassalamu'alaikum Wr. Wb.</textarea>
 
     $('copyAllMsgBtn').addEventListener('click', ()=>{
       if(!currentMessages.length){ alert('Belum ada pesan. Klik Generate dulu.'); return }
-      copyToClipboard(currentMessages.join('
-
----
-
-'))
+      copyToClipboard(currentMessages.join('---'))
     })
 
     $('downloadCsvBtn').addEventListener('click', ()=>{
@@ -272,6 +268,7 @@ Wassalamu'alaikum Wr. Wb.</textarea>
   </script>
 </body>
 </html>
+
 
 
 

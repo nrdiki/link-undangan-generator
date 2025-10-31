@@ -96,13 +96,11 @@ Wassalamu'alaikum Wr. Wb.</textarea>
     function $(id){return document.getElementById(id)}
 
     function parseNames(input){
-      return input
-        .split(/
-?
-|,|;/)
-        .map(s => s.trim())
-        .filter(Boolean)
-    }
+  return input
+    .split(/\r?\n|,|;/)
+    .map(s => s.trim())
+    .filter(Boolean)
+}
 
     function buildLink(base, param, name){
       const encoded = encodeURIComponent(name)
@@ -275,3 +273,4 @@ Wassalamu'alaikum Wr. Wb.</textarea>
   </script>
 </body>
 </html>
+

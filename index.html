@@ -250,9 +250,27 @@ $('copyAllMsgBtn').addEventListener('click', ()=>{
         $('generateBtn').click()
       }
     })
+
+    $('generateBtn').addEventListener('click', ()=>{
+  const baseUrl = $('baseUrl').value.trim();
+  const param = $('paramName').value.trim() || 'guest';
+  const previewCount = parseInt($('previewCount').value) || 10;
+  const template = $('template').value;
+  const names = parseNames($('rawNames').value);
+
+  if(!baseUrl){ alert('Base URL belum diisi'); return; }
+  if(!names.length){ alert('Nama tamu belum diisi'); return; }
+
+  currentNames = names;
+  currentLinks = names.map(name => buildLink(baseUrl, param, name));
+  currentMessages = names.map((name, i) => applyTemplate(template, name, currentLinks[i]));
+
+  renderResults(currentNames, currentLinks, currentMessages, previewCount);
+});
   </script>
 </body>
 </html>
+
 
 
 
